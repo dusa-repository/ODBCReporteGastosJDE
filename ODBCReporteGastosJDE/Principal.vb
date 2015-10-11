@@ -8,7 +8,7 @@ Module Principal
     Sub Main()
 
         cargar_parametros()
-        cadenaAS400_DTA = "DSN=SPI;uid=TRANSFTP;pwd=TRANSFTP;"
+        'cadenaAS400_DTA = "DSN=SPI;uid=TRANSFTP;pwd=TRANSFTP;"
         transferirRegistrosAJde()
 
     End Sub
@@ -22,10 +22,12 @@ Module Principal
     Dim CmdSQL As ADODB.Command
     Dim Cmd400 As ADODB.Command
     Dim cadenaAS400_DTA As String
+    Dim cadenaAS400_CTL As String
     Dim server As String
     Dim database As String
     Dim uid As String
     Dim pwd As String
+
 
     Private Sub transferirRegistrosAJde()
 
@@ -38,7 +40,7 @@ Module Principal
         Dim format As String = "dd/MM/yyyy"
 
         cmdSQL.Connection = connSQL
-        cmdSQL.CommandText = "select id,anticipo,monto_gastado from cabecera_reporte where estado='APROBADO' and transferir='SI' and actualizadoJDE='NO'"
+        cmdSQL.CommandText = "select id,anticipo,monto_gastado from cabecera_reporte where estado='APROBADO' and transferir='SI' and actualizadoJDE='NO' "
         Dim lrdSQL As SqlDataReader = cmdSQL.ExecuteReader()
         estado = ""
         While lrdSQL.Read()
@@ -508,11 +510,16 @@ Module Principal
    
     Private Sub insertInto400(ByVal sql As String)
 
+
+        Dim comando As New Odbc.OdbcCommand
+
         Dim cnn400 As New Odbc.OdbcConnection(cadenaAS400_DTA)
         cnn400.Open()
-        Cmd400.ActiveConnection = Conn400
-        Cmd400.CommandText = SQL
-        Cmd400.Execute()
+
+        comando.Connection = cnn400
+        comando.CommandText = sql
+        comando.ExecuteNonQuery()
+
         cnn400.Close()
 
     End Sub
@@ -535,7 +542,7 @@ Module Principal
     Private Function obtenerCorrelativoEDBT() As Long
 
         Dim correlativo As Long
-        Dim cnn400 As New Odbc.OdbcConnection(cadenaAS400_DTA)
+        Dim cnn400 As New Odbc.OdbcConnection(cadenaAS400_CTL)
         Dim rs400 As New Odbc.OdbcCommand("SELECT NNN006 FROM F0002 WHERE NNSY='00' ", cnn400)
         Dim reader400 As Odbc.OdbcDataReader
 
@@ -546,9 +553,11 @@ Module Principal
 
             correlativo = reader400("NNN006")
 
-            Cmd400.ActiveConnection = Conn400
-            Cmd400.CommandText = "UPDATE F0002 SET NNN006=NNN006+1 WHERE NNSY='00' "
-            Cmd400.Execute()
+            Dim comando As New Odbc.OdbcCommand
+
+            comando.Connection = cnn400
+            comando.CommandText = "UPDATE F0002 SET NNN006=NNN006+1 WHERE NNSY='00' "
+            comando.ExecuteNonQuery()
 
         End While
 
@@ -562,7 +571,7 @@ Module Principal
     Private Function obtenerCorrelativoICU() As Long
 
         Dim correlativo As Long
-        Dim cnn400 As New Odbc.OdbcConnection(cadenaAS400_DTA)
+        Dim cnn400 As New Odbc.OdbcConnection(cadenaAS400_CTL)
         Dim rs400 As New Odbc.OdbcCommand("SELECT NNN001 FROM F0002 WHERE NNSY='00' ", cnn400)
         Dim reader400 As Odbc.OdbcDataReader
 
@@ -573,9 +582,11 @@ Module Principal
 
             correlativo = reader400("NNN001")
 
-            Cmd400.ActiveConnection = Conn400
-            Cmd400.CommandText = "UPDATE F0002 SET NNN001=NNN001+1 WHERE NNSY='00' "
-            Cmd400.Execute()
+            Dim comando As New Odbc.OdbcCommand
+
+            comando.Connection = cnn400
+            comando.CommandText = "UPDATE F0002 SET NNN001=NNN001+1 WHERE NNSY='00' "
+            comando.ExecuteNonQuery()
 
         End While
 
@@ -664,7 +675,9 @@ Module Principal
         valor = ""
 
         cmdSQL.Connection = connSQL
-        cmdSQL.CommandText = "SELECT  valorstr2   From [dusa_reporte_gasto].[dbo].[udc]   where sistema='TABLAS' and subsistema='CONCEPTO' and valorstr1='" & concepto & "'  "
+
+        'cmdSQL.CommandText = "SELECT  valorstr2   From [dusa_reporte_gasto].[dbo].[udc]   where sistema='TABLAS' and subsistema='CONCEPTO' and valorstr1='" & concepto & "'  "
+        cmdSQL.CommandText = "select valorstr1 from F0005 inner join referencia_cruzada_F0005 ON F0005.DRRT=  referencia_cruzada_F0005.DRRT where F0005.DRRT='CO' AND F0005.DRSY='00' AND F0005.DRDL01='" & concepto & "'"
         Dim lrdSQL As SqlDataReader = cmdSQL.ExecuteReader()
 
         While lrdSQL.Read()
@@ -691,7 +704,9 @@ Module Principal
         valor = ""
 
         cmdSQL.Connection = connSQL
-        cmdSQL.CommandText = "SELECT  valorstr3   From [dusa_reporte_gasto].[dbo].[udc]   where sistema='TABLAS' and subsistema='CONCEPTO' and valorstr1='" & concepto & "'  "
+
+        'cmdSQL.CommandText = "SELECT  valorstr3   From [dusa_reporte_gasto].[dbo].[udc]   where sistema='TABLAS' and subsistema='CONCEPTO' and valorstr1='" & concepto & "'  "
+        cmdSQL.CommandText = "select valorstr2 from F0005 inner join referencia_cruzada_F0005 ON F0005.DRRT=  referencia_cruzada_F0005.DRRT where F0005.DRRT='CO' AND F0005.DRSY='00' AND F0005.DRDL01='" & concepto & "'"
         Dim lrdSQL As SqlDataReader = cmdSQL.ExecuteReader()
 
         While lrdSQL.Read()
@@ -742,6 +757,8 @@ Module Principal
             database = diccionario.Item("database")
             user = diccionario.Item("user")
             password = diccionario.Item("password")
+            cadenaAS400_DTA = diccionario.Item("DSN1")
+            cadenaAS400_CTL = diccionario.Item("DSN2")
 
             conexionString = "Data Source=" & host & ";Database=" & database & ";User ID=" & user & ";Password=" & password & ";"
 
